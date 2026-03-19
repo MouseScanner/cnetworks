@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <csignal>
 #include <unistd.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -181,6 +182,19 @@ int main(int argc, char **argv) {
             }
         }
         if (!g_run.load()) break;
+
+        for (;;) {
+            if (g_sd.load() < 0)
+                break;
+            struct pollfd p{};
+            p.fd = STDIN_FILENO;
+            p.events = POLLIN;
+            if (poll(&p, 1, 400) <= 0)
+                continue;
+            break;
+        }
+        if (g_sd.load() < 0)
+            continue;
 
         std::string line;
         std::cout << "> " << std::flush;
